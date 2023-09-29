@@ -5,13 +5,12 @@ const fs = require("fs");
 const path = require("path");
 
 function validateString(str) {
-  if (!str || str.trim().length === 0 || str === null || str === undefined)
-    return false;
+  if ((str = "" || !str || str === null || str === undefined)) return false;
   return true;
 }
 
 function validateNumber(num) {
-  if (num < 0 || typeof num !== "number") {
+  if (num < 0) {
     return false;
   }
 
@@ -104,10 +103,27 @@ const controllers = {
     }
 
     if (!validateString(searchString)) {
-      return res.status(404).json({
-        status: "error",
-        message: "No se ha enviado la busqueda",
-      });
+      Book.find({})
+        .then((books) => {
+          if (!books) {
+            return res.status(404).json({
+              status: "error",
+              message: "No se encontraron libros",
+            });
+          }
+
+          return res.status(200).json({
+            status: "success",
+            book: books,
+          });
+        })
+        .catch((err) => {
+          return res.status.json({
+            status: "error",
+            message: "Error al buscar libros",
+          });
+        });
+      return;
     }
 
     Book.find({
@@ -186,12 +202,14 @@ const controllers = {
         }
 
         // Antes de eliminar el libro de la base de datos, asegúrate de eliminar el archivo de imagen
-        const imagePath = `upload/images/${book.image}`;
-        fs.unlink(imagePath, (err) => {
-          if (err) {
-            console.error("Error al eliminar la imagen:", err);
-          }
-        });
+        if (book.image !== null) {
+          const imagePath = `upload/images/${book.image}`;
+          fs.unlink(imagePath, (err) => {
+            if (err) {
+              console.error("Error al eliminar la imagen:", err);
+            }
+          });
+        }
 
         return res.status(200).json({
           status: "success",
